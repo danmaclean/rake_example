@@ -1,0 +1,64 @@
+desc "makes log/ directory"
+directory "log"
+
+desc "adds mutations to fasta file, creates new file"
+file "added_snps.fa" => "log" do
+  sh "ruby lib/add_snps.rb --rate #{@all_snp_rate} --fasta 3_rgenes.fna --seed #{@all_snp_seed} --gap #{@all_snp_gap} --out added_snps.fa --log log/added_snps.log"
+end
+
+desc "generates log file of introduced snp positions from added_snps.fa"
+file "log/added_snps.log" do
+  Rake::Task["added_snps.fa"].invoke
+end
+
+desc "generates reads using wgsim from mutated fasta"
+file "snps_left.fq" => "added_snps.fa" do
+  sh "bin/wgsim -N #{@number} -S #{@seed} -r #{@rate} -R 0 -X 0 -1 #{@read_length} -2 #{@read_length} added_snps.fa snps_left.fq snps_right.fq 1> log/wgsim_snps_mutated_sequence.log 2> log/wgsim_stderr"
+  File.open("log/wgsim_stderr").readlines.each do |line|
+    next if line =~ /\[wgsim_core\] calculating the total length of the reference sequence/
+    line =~ /(\d+) sequences, total length: (\d+)/
+    num,length = $1,$2
+    coverage = (@read_length.to_f * @number.to_f) / length.to_f 
+    details = {
+      :num_seqs => num,
+      :total_length => length,
+      :coverage => coverage,
+      :error_rate => @rate,
+      :k => @k,
+      :read_length => @read_length,
+      :rand_seed => @seed,
+      :all_snp_seed => @all_snp_seed,
+      :all_snp_gap => @all_snp_gap,
+      :all_snp_rate => @all_snp_rate,
+      :n => @n,
+      :b => @b,
+      :c => @c,
+      :s => @s,
+      :w => @w
+    }.to_json
+    File.open("log/run_details.json", "w").puts details
+  end
+end
+
+file "snps_right.fq" => "added_snps.fa" do
+  Rake::Task["snps_left.fq"].invoke
+end
+
+desc "generates reads using wgsim from original fasta"
+file "left.fq" do
+  sh "bin/wgsim -N #{@number} -S #{@seed} -r #{@rate} -R 0 -X 0 -1 #{@read_length} -2 #{@read_length} 3_rgenes.fna left.fq right.fq 1> log/wgsim_snps_original_sequence.log"
+end
+
+file "right.fq" do
+  Rake::Task["left.fq"].invoke
+end
+
+desc "makes all input files"
+task :make_input_files do 
+  Rake::Task["added_snps.fa"].invoke
+  Rake::Task["log/added_snps.log"].invoke
+  Rake::Task["left.fq"].invoke
+  Rake::Task["right.fq"].invoke  
+  Rake::Task["snps_left.fq"].invoke
+  Rake::Task["snps_right.fq"].invoke  
+end

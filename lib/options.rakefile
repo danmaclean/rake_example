@@ -1,0 +1,37 @@
+@mac = "0"
+@mac = "1" if OS.mac?
+
+# ENV variables for runs:
+#__CORTEX AND BUBBLEPARSE__
+# k = length of k. Max 95
+# n = hash table width. eg 23
+# b = hash table height. eg 65
+# c = tip clipping length. eg 100
+# s = low coverage node removal, nodes less than this will be removed. eg 1
+# w = depth and path length for bubble search, eg 2,200
+@k = ENV['k'] ||= '31'
+@n = ENV['n'] ||= '23'
+@b = ENV['b'] ||= '65'
+@c = ENV['c'] ||= '100'
+@s = ENV['s'] ||= '1'
+@w = ENV['w'] ||= '1,200'
+
+# __wgsim__
+# number = number of reads
+# read_length = length of reads to generate
+# seed = random seed for wgsim
+# rate = error rate in reads (NOT deliberately introduced SNP rate)
+@number = ENV['number'] ||= '10000'
+@read_length = ENV['read_length'] ||= '70'
+@seed = ENV['seed'] ||= '1'
+@rate = ENV['rate'] ||= '0'
+
+
+# add_snps.rb
+# all_snp_rate = 1 snp per X nt. eg 200
+# all_snp_seed = random seed
+# all_snp_gap = minimum gap between SNPs added
+
+@all_snp_rate = ENV['all_snp_rate'] ||= '200'
+@all_snp_seed = ENV['all_snp_seed'] ||= '1'
+@all_snp_gap = ENV['all_snp_gap'] ||= '200'
